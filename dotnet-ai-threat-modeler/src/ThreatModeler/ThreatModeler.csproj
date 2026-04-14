@@ -4,8 +4,4 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="Azure.Cosmos" Version="3.42.0" />
-    <PackageReference Include="Azure.AI.OpenAI" Version="2.1.0" />
-  </ItemGroup>
 </Project>

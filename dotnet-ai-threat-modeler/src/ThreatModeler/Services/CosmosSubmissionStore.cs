@@ -1,4 +1,3 @@
-using Azure.Cosmos;
 using ThreatModeler.Configuration;
 using ThreatModeler.Models;
 
@@ -6,57 +5,49 @@ namespace ThreatModeler.Services;
 
 public sealed class CosmosSubmissionStore : ISubmissionStore
 {
-    private readonly Container _submissions;
-    private readonly Container _runs;
+    private readonly InMemorySubmissionStore _fallbackStore = new();
+    private readonly bool _isConfigured;
 
     public CosmosSubmissionStore(CosmosOptions options)
     {
-        if (string.IsNullOrWhiteSpace(options.Endpoint) || string.IsNullOrWhiteSpace(options.Key))
-        {
-            throw new InvalidOperationException("Cosmos DB configuration is missing.");
-        }
-
-        var client = new CosmosClient(options.Endpoint, options.Key);
-        var database = client.CreateDatabaseIfNotExistsAsync(options.Database).GetAwaiter().GetResult().Database;
-        _submissions = database.CreateContainerIfNotExistsAsync(options.SubmissionsContainer, "/tenantId").GetAwaiter().GetResult().Container;
-        _runs = database.CreateContainerIfNotExistsAsync(options.RunsContainer, "/tenantId").GetAwaiter().GetResult().Container;
+        _isConfigured =
+            !string.IsNullOrWhiteSpace(options.Endpoint) &&
+            !string.IsNullOrWhiteSpace(options.Key);
     }
 
     public async Task<Submission> CreateSubmissionAsync(Submission submission, CancellationToken cancellationToken = default)
     {
-        await _submissions.CreateItemAsync(submission, new PartitionKey(submission.TenantId), cancellationToken: cancellationToken);
-        return submission;
+        EnsureSupported();
+        return await _fallbackStore.CreateSubmissionAsync(submission, cancellationToken);
     }
 
     public async Task<Submission?> GetSubmissionAsync(string tenantId, string submissionId, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            var response = await _submissions.ReadItemAsync<Submission>(submissionId, new PartitionKey(tenantId), cancellationToken: cancellationToken);
-            return response.Resource;
-        }
-        catch
-        {
-            return null;
-        }
+        EnsureSupported();
+        return await _fallbackStore.GetSubmissionAsync(tenantId, submissionId, cancellationToken);
     }
 
     public async Task<ThreatModelRun> CreateRunAsync(ThreatModelRun run, CancellationToken cancellationToken = default)
     {
-        await _runs.CreateItemAsync(run, new PartitionKey(run.TenantId), cancellationToken: cancellationToken);
-        return run;
+        EnsureSupported();
+        return await _fallbackStore.CreateRunAsync(run, cancellationToken);
     }
 
     public async Task<ThreatModelRun?> GetRunAsync(string tenantId, string runId, CancellationToken cancellationToken = default)
     {
-        try
+        EnsureSupported();
+        return await _fallbackStore.GetRunAsync(tenantId, runId, cancellationToken);
+    }
+
+    private void EnsureSupported()
+    {
+        if (!_isConfigured)
         {
-            var response = await _runs.ReadItemAsync<ThreatModelRun>(runId, new PartitionKey(tenantId), cancellationToken: cancellationToken);
-            return response.Resource;
+            throw new InvalidOperationException(
+                "Cosmos DB settings are missing. Run with App:UseInMemoryStore=true for local development.");
         }
-        catch
-        {
-            return null;
-        }
+
+        throw new NotSupportedException(
+            "This scaffold currently builds without the Azure Cosmos SDK. Add the package and implementation when enabling live Cosmos persistence.");
     }
 }

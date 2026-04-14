@@ -61,7 +61,8 @@ TestResults/
 artifacts/
 *.cache
 *.pdb
+.dotnet-cli/
+.nuget/
 
 # Azure / local tooling
 local.settings.json
-

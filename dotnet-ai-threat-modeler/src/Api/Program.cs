@@ -4,9 +4,6 @@ using ThreatModeler.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
 builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection("Cosmos"));
 builder.Services.Configure<AzureOpenAiOptions>(builder.Configuration.GetSection("AzureOpenAI"));
@@ -23,10 +20,18 @@ builder.Services.AddSingleton<IAnalyzer>(_ =>
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
-
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/", () => Results.Ok(new
+{
+    service = "AI Threat Modeler API",
+    endpoints = new[]
+    {
+        "GET /health",
+        "POST /submit",
+        "POST /analyze/{submissionId}?tenantId={tenantId}",
+        "GET /results/{runId}?tenantId={tenantId}"
+    }
+}));
 
 app.MapPost("/submit", async (SubmissionRequest request, ISubmissionStore store, CancellationToken ct) =>
 {

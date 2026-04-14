@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Api", "src\Api\Api.csproj",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThreatModeler", "src\ThreatModeler\ThreatModeler.csproj", "{FBC5014D-06EA-4881-AE2D-29701AEB83DA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThreatModeler.Tests", "tests\ThreatModeler.Tests\ThreatModeler.Tests.csproj", "{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,6 +42,18 @@ Global
 		{FBC5014D-06EA-4881-AE2D-29701AEB83DA}.Release|x64.Build.0 = Release|Any CPU
 		{FBC5014D-06EA-4881-AE2D-29701AEB83DA}.Release|x86.ActiveCfg = Release|Any CPU
 		{FBC5014D-06EA-4881-AE2D-29701AEB83DA}.Release|x86.Build.0 = Release|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Debug|x64.Build.0 = Debug|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Debug|x86.Build.0 = Debug|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Release|x64.ActiveCfg = Release|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Release|x64.Build.0 = Release|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Release|x86.ActiveCfg = Release|Any CPU
+		{D2A4E5D4-0F3C-4A49-95D7-2E62C3264A11}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -35,53 +35,26 @@ app.MapGet("/", () => Results.Ok(new
 
 app.MapPost("/submit", async (SubmissionRequest request, ISubmissionStore store, CancellationToken ct) =>
 {
-    var submission = new Submission
-    {
-        TenantId = request.TenantId,
-        ApplicationName = request.ApplicationName,
-        BusinessPurpose = request.BusinessPurpose,
-        ArchitectureSummary = request.ArchitectureSummary,
-        Components = request.Components,
-        DataFlows = request.DataFlows,
-        TrustBoundaries = request.TrustBoundaries,
-        AuthenticationDetails = request.AuthenticationDetails,
-        SensitiveData = request.SensitiveData,
-        InternetExposure = request.InternetExposure,
-        ExistingControls = request.ExistingControls,
-        Assumptions = request.Assumptions
-    };
-
-    await store.CreateSubmissionAsync(submission, ct);
-    return Results.Ok(new { id = submission.Id, tenantId = submission.TenantId, status = submission.Status });
+    var response = await SubmissionWorkflow.CreateSubmissionAsync(request, store, ct);
+    return Results.Ok(response);
 });
 
 app.MapPost("/analyze/{submissionId}", async (string submissionId, string tenantId, ISubmissionStore store, IAnalyzer analyzer, CancellationToken ct) =>
 {
-    var submission = await store.GetSubmissionAsync(tenantId, submissionId, ct);
-    if (submission is null)
-    {
-        return Results.NotFound(new { message = "Submission not found." });
-    }
-
-    var result = await analyzer.AnalyzeAsync(submission, ct);
-    var run = new ThreatModelRun
-    {
-        TenantId = tenantId,
-        SubmissionId = submissionId,
-        AnalyzerType = analyzer.AnalyzerType,
-        Result = result
-    };
-
-    await store.CreateRunAsync(run, ct);
-    return Results.Ok(new { runId = run.Id, submissionId, status = run.Status });
+    var response = await SubmissionWorkflow.AnalyzeSubmissionAsync(submissionId, tenantId, store, analyzer, ct);
+    return response is null
+        ? Results.NotFound(new { message = "Submission not found." })
+        : Results.Ok(response);
 });
 
 app.MapGet("/results/{runId}", async (string runId, string tenantId, ISubmissionStore store, CancellationToken ct) =>
 {
-    var run = await store.GetRunAsync(tenantId, runId, ct);
-    return run is null
+    var response = await SubmissionWorkflow.GetResultsAsync(runId, tenantId, store, ct);
+    return response is null
         ? Results.NotFound(new { message = "Run not found." })
-        : Results.Ok(run);
+        : Results.Ok(response);
 });
 
 app.Run();
+
+public partial class Program;

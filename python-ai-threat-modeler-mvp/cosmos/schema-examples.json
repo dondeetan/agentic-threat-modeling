@@ -1,0 +1,22 @@
+{
+  "submissions": [
+    {
+      "id": "sub-123",
+      "tenantId": "tenant-demo",
+      "applicationName": "Claims API",
+      "status": "submitted"
+    }
+  ],
+  "threatModelRuns": [
+    {
+      "id": "run-123",
+      "tenantId": "tenant-demo",
+      "submissionId": "sub-123",
+      "analyzerType": "mock",
+      "status": "completed",
+      "result": {
+        "summary": "Example result"
+      }
+    }
+  ]
+}

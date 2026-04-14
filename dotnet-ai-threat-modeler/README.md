@@ -52,7 +52,7 @@ dotnet-ai-threat-modeler-mvp/
 
 ## Local development prerequisites
 
-- .NET 8 SDK
+- .NET 10 SDK
 - Optional:
   - Azure Cosmos DB account
   - Azure OpenAI deployment

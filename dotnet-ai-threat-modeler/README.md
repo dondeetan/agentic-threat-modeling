@@ -18,36 +18,35 @@ A runnable ASP.NET Core minimal API MVP for automated security threat modeling i
 
 ```text
 dotnet-ai-threat-modeler-mvp/
-├─ README.md
-├─ .env.example
-├─ AiThreatModeler.sln
-├─ src/
-│  ├─ Api/
-│  │  ├─ Program.cs
-│  │  ├─ appsettings.json
-│  │  ├─ appsettings.Development.json
-│  │  └─ Api.csproj
-│  └─ ThreatModeler/
-│     ├─ ThreatModeler.csproj
-│     ├─ Models/
-│     │  ├─ Submission.cs
-│     │  ├─ ThreatModelRun.cs
-│     │  └─ Dtos.cs
-│     ├─ Services/
-│     │  ├─ IAnalyzer.cs
-│     │  ├─ MockAnalyzer.cs
-│     │  ├─ AzureOpenAiAnalyzer.cs
-│     │  ├─ ISubmissionStore.cs
-│     │  ├─ InMemorySubmissionStore.cs
-│     │  └─ CosmosSubmissionStore.cs
-│     └─ Configuration/
-│        └─ AppOptions.cs
-├─ tests/
-│  └─ ThreatModeler.Tests/
-├─ docs/
-│  └─ cosmos-schema.md
-└─ cosmos/
-   └─ schema-examples.json
++-- README.md
++-- .env.example
++-- AiThreatModeler.sln
++-- src/
+|   +-- Api/
+|   |   +-- Program.cs
+|   |   +-- appsettings.json
+|   |   +-- appsettings.Development.json
+|   |   \-- Api.csproj
+|   +-- ThreatModeler/
+|   |   +-- ThreatModeler.csproj
+|   |   +-- Models/
+|   |   |   +-- Submission.cs
+|   |   |   +-- ThreatModelRun.cs
+|   |   |   \-- Dtos.cs
+|   |   +-- Services/
+|   |   |   +-- IAnalyzer.cs
+|   |   |   +-- MockAnalyzer.cs
+|   |   |   +-- AzureOpenAiAnalyzer.cs
+|   |   |   +-- ISubmissionStore.cs
+|   |   |   +-- InMemorySubmissionStore.cs
+|   |   |   \-- CosmosSubmissionStore.cs
+|   |   \-- Configuration/
+|   |       \-- AppOptions.cs
+|   \-- ThreatModeler.Tests/
++-- docs/
+|   \-- cosmos-schema.md
+\-- cosmos/
+    \-- schema-examples.json
 ```
 
 ## Local development prerequisites

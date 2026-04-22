@@ -11,6 +11,7 @@ Thumbs.db
 *.sln.docstates
 *.swp
 *.tmp
+*.dotnet_cli
 
 # Environment and local secrets
 .env

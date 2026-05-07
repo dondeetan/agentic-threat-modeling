@@ -2,6 +2,10 @@
 
 A runnable ASP.NET Core minimal API MVP for automated security threat modeling in an Azure/Microsoft environment.
 
+## Solution architecture
+
+![Threat Modeler AI solution architecture](docs/ThreatModelerAIV1.png)
+
 ## What this repo includes
 
 - ASP.NET Core API with endpoints:

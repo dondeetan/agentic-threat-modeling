@@ -1,3 +1,5 @@
+using ChatClientShared.AzureOpenAIChatClientShared;
+using ChatClientShared.OpenAIChatClientShared;
 using ThreatModeler.Configuration;
 using ThreatModeler.Services;
 
@@ -17,7 +19,14 @@ builder.Services.AddSingleton<ISubmissionStore>(_ =>
 // Dependency Inversion Principle: the API depends on workflow/analyzer abstractions, not concrete implementations.
 builder.Services.AddSingleton<IAnalyzer, OpenApiAnalyzer>();
 builder.Services.AddSingleton<IAnalyzer, MockAnalyzer>();
-builder.Services.AddSingleton<IAnalyzer>(_ => new AzureOpenAiAnalyzer(appOptions));
+builder.Services.AddSingleton<IAnalyzer>(_ =>
+    new ChatClientAnalyzer(
+        AnalyzerTypes.OpenAi,
+        () => OpenAIChatClientFactory.Create(builder.Configuration)));
+builder.Services.AddSingleton<IAnalyzer>(_ =>
+    new ChatClientAnalyzer(
+        AnalyzerTypes.AzureOpenAi,
+        () => AzureOpenAIChatClientFactory.Create(builder.Configuration)));
 builder.Services.AddSingleton<IAnalyzerFactory, AnalyzerFactory>();
 builder.Services.AddSingleton<ISubmissionWorkflow>(serviceProvider =>
     new SubmissionWorkflow(

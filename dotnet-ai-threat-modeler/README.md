@@ -38,7 +38,7 @@ The code includes short comments at the implementation points where these patter
   - `GET /results/{runId}`
   - `GET /health`
 - OpenAPI analyzer with deterministic endpoint extraction and STRIDE-style output
-- Analyzer factory for OpenAPI, mock, and Azure OpenAI analyzers
+- Analyzer factory for OpenAPI, OpenAI, Azure OpenAI, and mock analyzers
 - Cosmos DB repository scaffold with in-memory local store
 - Tests for workflow, store behavior, mock analyzer behavior, and OpenAPI analyzer selection
 
@@ -100,8 +100,12 @@ Recommended local defaults:
 Supported analyzer types:
 
 - `openapi`
-- `mock`
+- `openai`
 - `azure-openai`
+- `mock`
+
+When `AnalyzerType` is `openai`, configure the `OpenAI` section with `Endpoint`, `ApiKey`, and `Model`.
+When `AnalyzerType` is `azure-openai`, configure the `AzureOpenAI` section with `Endpoint`, `ApiKey`, and `Model`.
 
 ### 3. Run locally
 
@@ -156,5 +160,5 @@ curl "http://localhost:5099/results/<runId>?tenantId=tenant-demo"
 ## Integration notes
 
 - OpenAPI is the default analyzer so the MVP can produce stable local output from API specs.
-- Azure OpenAI remains registered as an analyzer adapter, but its live SDK call is still intentionally scaffolded.
+- OpenAI and Azure OpenAI analyzers use the shared `ChatClientShared` factories and can be selected with `App:AnalyzerType`.
 - Cosmos DB remains behind `ISubmissionStore`; switch `UseInMemoryStore=false` only after adding the live Cosmos SDK implementation.

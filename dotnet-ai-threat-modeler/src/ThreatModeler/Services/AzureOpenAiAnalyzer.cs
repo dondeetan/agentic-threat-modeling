@@ -5,10 +5,10 @@ namespace ThreatModeler.Services;
 
 public sealed class AzureOpenAiAnalyzer : IAnalyzer
 {
-    private readonly AzureOpenAiOptions _options;
+    private readonly AppOptions _options;
     public string AnalyzerType => AnalyzerTypes.AzureOpenAi;
 
-    public AzureOpenAiAnalyzer(AzureOpenAiOptions options)
+    public AzureOpenAiAnalyzer(AppOptions options)
     {
         _options = options;
     }
@@ -24,6 +24,8 @@ public sealed class AzureOpenAiAnalyzer : IAnalyzer
         var fallback = new
         {
             summary = "Azure OpenAI adapter is configured as a scaffold. Wire the SDK call here for live analysis.",
+            model = _options.Model,
+            apiVersion = _options.ApiVersion,
             assets = submission.Components,
             trustBoundaries = submission.TrustBoundaries,
             threats = Array.Empty<object>(),

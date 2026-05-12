@@ -5,11 +5,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection("Cosmos"));
-builder.Services.Configure<AzureOpenAiOptions>(builder.Configuration.GetSection("AzureOpenAI"));
 
 var appOptions = builder.Configuration.GetSection("App").Get<AppOptions>() ?? new AppOptions();
 var cosmosOptions = builder.Configuration.GetSection("Cosmos").Get<CosmosOptions>() ?? new CosmosOptions();
-var openAiOptions = builder.Configuration.GetSection("AzureOpenAI").Get<AzureOpenAiOptions>() ?? new AzureOpenAiOptions();
 
 builder.Services.AddControllers();
 
@@ -19,7 +17,7 @@ builder.Services.AddSingleton<ISubmissionStore>(_ =>
 // Dependency Inversion Principle: the API depends on workflow/analyzer abstractions, not concrete implementations.
 builder.Services.AddSingleton<IAnalyzer, OpenApiAnalyzer>();
 builder.Services.AddSingleton<IAnalyzer, MockAnalyzer>();
-builder.Services.AddSingleton<IAnalyzer>(_ => new AzureOpenAiAnalyzer(openAiOptions));
+builder.Services.AddSingleton<IAnalyzer>(_ => new AzureOpenAiAnalyzer(appOptions));
 builder.Services.AddSingleton<IAnalyzerFactory, AnalyzerFactory>();
 builder.Services.AddSingleton<ISubmissionWorkflow>(serviceProvider =>
     new SubmissionWorkflow(

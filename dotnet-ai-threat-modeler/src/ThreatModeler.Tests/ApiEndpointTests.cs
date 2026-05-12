@@ -11,8 +11,9 @@ public sealed class ApiEndpointTests
     {
         var store = new InMemorySubmissionStore();
         var request = CreateRequest();
+        var workflow = CreateWorkflow(store, new MockAnalyzer());
 
-        var response = await SubmissionWorkflow.CreateSubmissionAsync(request, store, CancellationToken.None);
+        var response = await workflow.CreateSubmissionAsync(request, CancellationToken.None);
 
         Assert.Equal(request.TenantId, response.TenantId);
         Assert.Equal("submitted", response.Status);
@@ -29,13 +30,11 @@ public sealed class ApiEndpointTests
     public async Task AnalyzeSubmissionAsync_ReturnsNotFoundWhenSubmissionDoesNotExist()
     {
         var store = new InMemorySubmissionStore();
-        var analyzer = new MockAnalyzer();
+        var workflow = CreateWorkflow(store, new MockAnalyzer());
 
-        var result = await SubmissionWorkflow.AnalyzeSubmissionAsync(
+        var result = await workflow.AnalyzeSubmissionAsync(
             "missing-submission",
             "tenant-a",
-            store,
-            analyzer,
             CancellationToken.None);
 
         Assert.Null(result);
@@ -46,6 +45,7 @@ public sealed class ApiEndpointTests
     {
         var store = new InMemorySubmissionStore();
         var analyzer = new MockAnalyzer();
+        var workflow = CreateWorkflow(store, analyzer);
         var submission = new Submission
         {
             TenantId = "tenant-a",
@@ -56,11 +56,9 @@ public sealed class ApiEndpointTests
 
         await store.CreateSubmissionAsync(submission, CancellationToken.None);
 
-        var response = await SubmissionWorkflow.AnalyzeSubmissionAsync(
+        var response = await workflow.AnalyzeSubmissionAsync(
             submission.Id,
             submission.TenantId,
-            store,
-            analyzer,
             CancellationToken.None);
 
         Assert.NotNull(response);
@@ -78,6 +76,7 @@ public sealed class ApiEndpointTests
     public async Task GetResultsAsync_ReturnsStoredRun()
     {
         var store = new InMemorySubmissionStore();
+        var workflow = CreateWorkflow(store, new MockAnalyzer());
         var run = new ThreatModelRun
         {
             TenantId = "tenant-a",
@@ -88,10 +87,9 @@ public sealed class ApiEndpointTests
 
         await store.CreateRunAsync(run, CancellationToken.None);
 
-        var response = await SubmissionWorkflow.GetResultsAsync(
+        var response = await workflow.GetResultsAsync(
             run.Id,
             run.TenantId,
-            store,
             CancellationToken.None);
 
         Assert.NotNull(response);
@@ -103,13 +101,50 @@ public sealed class ApiEndpointTests
     [Fact]
     public async Task GetResultsAsync_ReturnsNotFoundForMissingRun()
     {
-        var result = await SubmissionWorkflow.GetResultsAsync(
+        var workflow = CreateWorkflow(new InMemorySubmissionStore(), new MockAnalyzer());
+
+        var result = await workflow.GetResultsAsync(
             "missing-run",
             "tenant-a",
-            new InMemorySubmissionStore(),
             CancellationToken.None);
 
         Assert.Null(result);
+    }
+
+    [Fact]
+    public async Task AnalyzeSubmissionAsync_UsesOpenApiAnalyzerByDefault()
+    {
+        var store = new InMemorySubmissionStore();
+        var workflow = CreateWorkflow(store, new OpenApiAnalyzer(), "openapi");
+        var submission = new Submission
+        {
+            TenantId = "tenant-a",
+            ApplicationName = "Claims API",
+            Components = new() { "Claims API" },
+            OpenApiDocument = """
+            {
+              "openapi": "3.0.1",
+              "paths": {
+                "/claims": {
+                  "get": {},
+                  "post": {}
+                }
+              }
+            }
+            """
+        };
+
+        await store.CreateSubmissionAsync(submission, CancellationToken.None);
+
+        var response = await workflow.AnalyzeSubmissionAsync(
+            submission.Id,
+            submission.TenantId,
+            CancellationToken.None);
+
+        Assert.NotNull(response);
+        var storedRun = await store.GetRunAsync(submission.TenantId, response!.RunId, CancellationToken.None);
+        Assert.NotNull(storedRun);
+        Assert.Equal("openapi", storedRun!.AnalyzerType);
     }
 
     private static SubmissionRequest CreateRequest()
@@ -123,11 +158,31 @@ public sealed class ApiEndpointTests
             Components = new() { "React SPA", "API", "Storage" },
             DataFlows = new() { "SPA to API", "API to Storage" },
             TrustBoundaries = new() { "Internet", "App to Data" },
+            OpenApiDocument = """
+            {
+              "openapi": "3.0.1",
+              "paths": {
+                "/claims": {
+                  "get": {},
+                  "post": {}
+                }
+              }
+            }
+            """,
             AuthenticationDetails = "Entra ID",
             SensitiveData = new() { "PII" },
             InternetExposure = "Public API",
             ExistingControls = new() { "WAF" },
             Assumptions = new() { "No public DB access" }
         };
+    }
+
+    private static SubmissionWorkflow CreateWorkflow(
+        ISubmissionStore store,
+        IAnalyzer analyzer,
+        string analyzerType = "mock")
+    {
+        var factory = new AnalyzerFactory(new[] { analyzer });
+        return new SubmissionWorkflow(store, factory, analyzerType);
     }
 }

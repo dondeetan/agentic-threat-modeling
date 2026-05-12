@@ -1,4 +1,3 @@
-using System.Text.Json;
 using ThreatModeler.Configuration;
 using ThreatModeler.Models;
 
@@ -7,7 +6,7 @@ namespace ThreatModeler.Services;
 public sealed class AzureOpenAiAnalyzer : IAnalyzer
 {
     private readonly AzureOpenAiOptions _options;
-    public string AnalyzerType => "azure-openai";
+    public string AnalyzerType => AnalyzerTypes.AzureOpenAi;
 
     public AzureOpenAiAnalyzer(AzureOpenAiOptions options)
     {

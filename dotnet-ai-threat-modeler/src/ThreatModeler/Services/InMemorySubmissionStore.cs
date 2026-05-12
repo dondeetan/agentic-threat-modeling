@@ -1,11 +1,12 @@
+using System.Collections.Concurrent;
 using ThreatModeler.Models;
 
 namespace ThreatModeler.Services;
 
 public sealed class InMemorySubmissionStore : ISubmissionStore
 {
-    private readonly Dictionary<(string TenantId, string SubmissionId), Submission> _submissions = new();
-    private readonly Dictionary<(string TenantId, string RunId), ThreatModelRun> _runs = new();
+    private readonly ConcurrentDictionary<(string TenantId, string SubmissionId), Submission> _submissions = new();
+    private readonly ConcurrentDictionary<(string TenantId, string RunId), ThreatModelRun> _runs = new();
 
     public Task<Submission> CreateSubmissionAsync(Submission submission, CancellationToken cancellationToken = default)
     {

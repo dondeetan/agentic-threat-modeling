@@ -1,10 +1,11 @@
 using ThreatModeler.Models;
+using ThreatModeler.Configuration;
 
 namespace ThreatModeler.Services;
 
 public sealed class MockAnalyzer : IAnalyzer
 {
-    public string AnalyzerType => "mock";
+    public string AnalyzerType => AnalyzerTypes.Mock;
 
     public Task<object> AnalyzeAsync(Submission submission, CancellationToken cancellationToken = default)
     {

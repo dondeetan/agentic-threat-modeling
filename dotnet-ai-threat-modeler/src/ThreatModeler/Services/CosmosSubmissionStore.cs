@@ -5,6 +5,7 @@ namespace ThreatModeler.Services;
 
 public sealed class CosmosSubmissionStore : ISubmissionStore
 {
+    // Proxy pattern: this placeholder preserves the repository contract until live Cosmos SDK persistence is enabled.
     private readonly InMemorySubmissionStore _fallbackStore = new();
     private readonly bool _isConfigured;
 

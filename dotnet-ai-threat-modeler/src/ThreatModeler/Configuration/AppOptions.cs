@@ -2,8 +2,15 @@ namespace ThreatModeler.Configuration;
 
 public sealed class AppOptions
 {
-    public bool UseMockAnalyzer { get; set; } = true;
+    public string AnalyzerType { get; set; } = AnalyzerTypes.OpenApi;
     public bool UseInMemoryStore { get; set; } = true;
+}
+
+public static class AnalyzerTypes
+{
+    public const string OpenApi = "openapi";
+    public const string AzureOpenAi = "azure-openai";
+    public const string Mock = "mock";
 }
 
 public sealed class CosmosOptions

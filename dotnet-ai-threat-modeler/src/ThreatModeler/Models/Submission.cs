@@ -10,6 +10,7 @@ public sealed class Submission
     public List<string> Components { get; set; } = new();
     public List<string> DataFlows { get; set; } = new();
     public List<string> TrustBoundaries { get; set; } = new();
+    public string OpenApiDocument { get; set; } = string.Empty;
     public string AuthenticationDetails { get; set; } = string.Empty;
     public List<string> SensitiveData { get; set; } = new();
     public string InternetExposure { get; set; } = string.Empty;

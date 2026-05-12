@@ -2,13 +2,20 @@ using ThreatModeler.Models;
 
 namespace ThreatModeler.Services;
 
-public static class SubmissionWorkflow
+public interface ISubmissionWorkflow
 {
-    public static async Task<SubmissionCreatedResponse> CreateSubmissionAsync(
+    Task<SubmissionCreatedResponse> CreateSubmissionAsync(SubmissionRequest request, CancellationToken cancellationToken);
+    Task<RunCreatedResponse?> AnalyzeSubmissionAsync(string submissionId, string tenantId, CancellationToken cancellationToken);
+    Task<ThreatModelRun?> GetResultsAsync(string runId, string tenantId, CancellationToken cancellationToken);
+}
+
+public sealed class SubmissionWorkflow(ISubmissionStore store, IAnalyzerFactory analyzerFactory, string analyzerType) : ISubmissionWorkflow
+{
+    public async Task<SubmissionCreatedResponse> CreateSubmissionAsync(
         SubmissionRequest request,
-        ISubmissionStore store,
         CancellationToken cancellationToken)
     {
+        // Builder-style mapping: the DTO is translated into a domain submission in one cohesive step.
         var submission = new Submission
         {
             TenantId = request.TenantId,
@@ -18,6 +25,7 @@ public static class SubmissionWorkflow
             Components = request.Components,
             DataFlows = request.DataFlows,
             TrustBoundaries = request.TrustBoundaries,
+            OpenApiDocument = request.OpenApiDocument,
             AuthenticationDetails = request.AuthenticationDetails,
             SensitiveData = request.SensitiveData,
             InternetExposure = request.InternetExposure,
@@ -30,11 +38,9 @@ public static class SubmissionWorkflow
         return new SubmissionCreatedResponse(submission.Id, submission.TenantId, submission.Status);
     }
 
-    public static async Task<RunCreatedResponse?> AnalyzeSubmissionAsync(
+    public async Task<RunCreatedResponse?> AnalyzeSubmissionAsync(
         string submissionId,
         string tenantId,
-        ISubmissionStore store,
-        IAnalyzer analyzer,
         CancellationToken cancellationToken)
     {
         var submission = await store.GetSubmissionAsync(tenantId, submissionId, cancellationToken);
@@ -43,6 +49,7 @@ public static class SubmissionWorkflow
             return null;
         }
 
+        var analyzer = analyzerFactory.Create(analyzerType);
         var result = await analyzer.AnalyzeAsync(submission, cancellationToken);
         var run = new ThreatModelRun
         {
@@ -57,12 +64,12 @@ public static class SubmissionWorkflow
         return new RunCreatedResponse(run.Id, submissionId, run.Status);
     }
 
-    public static Task<ThreatModelRun?> GetResultsAsync(
+    public Task<ThreatModelRun?> GetResultsAsync(
         string runId,
         string tenantId,
-        ISubmissionStore store,
         CancellationToken cancellationToken)
     {
+        // Facade: the API layer uses this single workflow instead of coordinating stores and analyzers.
         return store.GetRunAsync(tenantId, runId, cancellationToken);
     }
 }

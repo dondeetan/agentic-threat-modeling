@@ -4,6 +4,7 @@ using ThreatModeler.Configuration;
 using ThreatModeler.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseUrls("http://localhost:8085");
 
 builder.Services.Configure<AppOptions>(builder.Configuration.GetSection("App"));
 builder.Services.Configure<CosmosOptions>(builder.Configuration.GetSection("Cosmos"));
@@ -12,12 +13,13 @@ var appOptions = builder.Configuration.GetSection("App").Get<AppOptions>() ?? ne
 var cosmosOptions = builder.Configuration.GetSection("Cosmos").Get<CosmosOptions>() ?? new CosmosOptions();
 
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<ISubmissionStore>(_ =>
     appOptions.UseInMemoryStore ? new InMemorySubmissionStore() : new CosmosSubmissionStore(cosmosOptions));
 
 // Dependency Inversion Principle: the API depends on workflow/analyzer abstractions, not concrete implementations.
-builder.Services.AddSingleton<IAnalyzer, OpenApiAnalyzer>();
 builder.Services.AddSingleton<IAnalyzer, MockAnalyzer>();
 builder.Services.AddSingleton<IAnalyzer>(_ =>
     new ChatClientAnalyzer(
@@ -35,6 +37,9 @@ builder.Services.AddSingleton<ISubmissionWorkflow>(serviceProvider =>
         appOptions.AnalyzerType));
 
 var app = builder.Build();
+
+app.UseSwagger();
+app.UseSwaggerUI();
 
 // Front Controller pattern: ASP.NET Core routing dispatches requests to controller actions.
 app.MapControllers();

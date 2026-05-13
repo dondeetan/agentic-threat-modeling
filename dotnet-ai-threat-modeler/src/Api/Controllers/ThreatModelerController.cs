@@ -7,32 +7,14 @@ using ThreatModeler.Services;
 namespace Api.Controllers;
 
 [ApiController]
-[Route("")]
+[Route("[controller]/api")]
 public sealed class ThreatModelerController(
-    ISubmissionWorkflow workflow,
-    IOptions<AppOptions> appOptions) : ControllerBase
+    ISubmissionWorkflow workflow) : ControllerBase
 {
     [HttpGet("health")]
     public IActionResult Health()
     {
         return Ok(new { status = "ok" });
-    }
-
-    [HttpGet]
-    public IActionResult Index()
-    {
-        return Ok(new
-        {
-            service = "OpenAI Threat Modeler API",
-            defaultAnalyzer = appOptions.Value.AnalyzerType,
-            endpoints = new[]
-            {
-                "GET /health",
-                "POST /submit",
-                "POST /analyze/{submissionId}?tenantId={tenantId}",
-                "GET /results/{runId}?tenantId={tenantId}"
-            }
-        });
     }
 
     [HttpPost("submit")]

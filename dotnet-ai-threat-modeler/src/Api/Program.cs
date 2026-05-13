@@ -17,7 +17,6 @@ builder.Services.AddSingleton<ISubmissionStore>(_ =>
     appOptions.UseInMemoryStore ? new InMemorySubmissionStore() : new CosmosSubmissionStore(cosmosOptions));
 
 // Dependency Inversion Principle: the API depends on workflow/analyzer abstractions, not concrete implementations.
-builder.Services.AddSingleton<IAnalyzer, OpenApiAnalyzer>();
 builder.Services.AddSingleton<IAnalyzer, MockAnalyzer>();
 builder.Services.AddSingleton<IAnalyzer>(_ =>
     new ChatClientAnalyzer(

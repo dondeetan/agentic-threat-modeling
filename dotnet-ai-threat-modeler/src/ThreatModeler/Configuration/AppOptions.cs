@@ -2,13 +2,12 @@ namespace ThreatModeler.Configuration;
 
 public sealed class AppOptions
 {
-    public string AnalyzerType { get; set; } = AnalyzerTypes.OpenApi;
+    public string AnalyzerType { get; set; } = AnalyzerTypes.OpenAi;
     public bool UseInMemoryStore { get; set; } = true;
 }
 
 public static class AnalyzerTypes
 {
-    public const string OpenApi = "openapi";
     public const string OpenAi = "openai";
     public const string AzureOpenAi = "azure-openai";
     public const string Mock = "mock";

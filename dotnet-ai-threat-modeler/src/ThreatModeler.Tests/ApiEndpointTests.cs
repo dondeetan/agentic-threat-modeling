@@ -112,10 +112,10 @@ public sealed class ApiEndpointTests
     }
 
     [Fact]
-    public async Task AnalyzeSubmissionAsync_UsesOpenApiAnalyzerByDefault()
+    public async Task AnalyzeSubmissionAsync_UsesOpenAiAnalyzerByDefault()
     {
         var store = new InMemorySubmissionStore();
-        var workflow = CreateWorkflow(store, new OpenApiAnalyzer(), "openapi");
+        var workflow = CreateWorkflow(store, new TestAnalyzer("openai"), "openai");
         var submission = new Submission
         {
             TenantId = "tenant-a",
@@ -144,7 +144,7 @@ public sealed class ApiEndpointTests
         Assert.NotNull(response);
         var storedRun = await store.GetRunAsync(submission.TenantId, response!.RunId, CancellationToken.None);
         Assert.NotNull(storedRun);
-        Assert.Equal("openapi", storedRun!.AnalyzerType);
+        Assert.Equal("openai", storedRun!.AnalyzerType);
     }
 
     private static SubmissionRequest CreateRequest()
@@ -184,5 +184,15 @@ public sealed class ApiEndpointTests
     {
         var factory = new AnalyzerFactory(new[] { analyzer });
         return new SubmissionWorkflow(store, factory, analyzerType);
+    }
+
+    private sealed class TestAnalyzer(string analyzerType) : IAnalyzer
+    {
+        public string AnalyzerType { get; } = analyzerType;
+
+        public Task<object> AnalyzeAsync(Submission submission, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<object>(new { summary = "ok" });
+        }
     }
 }

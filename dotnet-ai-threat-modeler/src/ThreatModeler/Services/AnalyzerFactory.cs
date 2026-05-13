@@ -11,7 +11,7 @@ public sealed class AnalyzerFactory(IEnumerable<IAnalyzer> analyzers) : IAnalyze
     {
         // Factory Method: callers ask for an analyzer by capability while construction stays in one place.
         var requestedType = string.IsNullOrWhiteSpace(analyzerType)
-            ? AnalyzerTypes.OpenApi
+            ? AnalyzerTypes.OpenAi
             : analyzerType;
 
         if (_analyzers.TryGetValue(requestedType, out var analyzer))

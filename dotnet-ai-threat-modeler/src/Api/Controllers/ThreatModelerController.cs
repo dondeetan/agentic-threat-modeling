@@ -18,34 +18,16 @@ public sealed class ThreatModelerController(
         return Ok(new { status = "ok" });
     }
 
-    [HttpGet("openapi/v1.json")]
-    public IActionResult GetOpenApiDocument()
-    {
-        return Ok(new
-        {
-            openapi = "3.0.1",
-            info = new { title = "OpenAPI Threat Modeler API", version = "v1" },
-            paths = new Dictionary<string, object>
-            {
-                ["/health"] = new { get = new { summary = "Health probe" } },
-                ["/submit"] = new { post = new { summary = "Submit application and OpenAPI context for threat modeling" } },
-                ["/analyze/{submissionId}"] = new { post = new { summary = "Analyze a submitted threat model request" } },
-                ["/results/{runId}"] = new { get = new { summary = "Get a completed threat model run" } }
-            }
-        });
-    }
-
     [HttpGet]
     public IActionResult Index()
     {
         return Ok(new
         {
-            service = "OpenAPI Threat Modeler API",
+            service = "OpenAI Threat Modeler API",
             defaultAnalyzer = appOptions.Value.AnalyzerType,
             endpoints = new[]
             {
                 "GET /health",
-                "GET /openapi/v1.json",
                 "POST /submit",
                 "POST /analyze/{submissionId}?tenantId={tenantId}",
                 "GET /results/{runId}?tenantId={tenantId}"

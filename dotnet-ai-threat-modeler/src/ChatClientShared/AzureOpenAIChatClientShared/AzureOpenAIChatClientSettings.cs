@@ -4,6 +4,7 @@ namespace ChatClientShared.AzureOpenAIChatClientShared;
 
 public sealed record AzureOpenAIChatClientSettings(Uri Endpoint, string ApiKey, string Model)
 {
+    // Options pattern: one immutable settings record carries the Azure OpenAI client configuration.
     public const string ConfigurationSectionName = "AzureOpenAI";
     public const string DefaultModel = "gpt-5-mini";
 

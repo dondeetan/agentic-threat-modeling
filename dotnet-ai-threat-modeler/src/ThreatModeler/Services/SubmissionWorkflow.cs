@@ -35,6 +35,7 @@ public sealed class SubmissionWorkflow(ISubmissionStore store, IAnalyzerFactory 
 
         await store.CreateSubmissionAsync(submission, cancellationToken);
 
+        // Data Transfer Object pattern: return only the API-facing status instead of the full domain object.
         return new SubmissionCreatedResponse(submission.Id, submission.TenantId, submission.Status);
     }
 
@@ -49,6 +50,7 @@ public sealed class SubmissionWorkflow(ISubmissionStore store, IAnalyzerFactory 
             return null;
         }
 
+        // Factory Method + Strategy: select the configured analyzer, then run it through the common contract.
         var analyzer = analyzerFactory.Create(analyzerType);
         var result = await analyzer.AnalyzeAsync(submission, cancellationToken);
         var run = new ThreatModelRun
@@ -61,6 +63,7 @@ public sealed class SubmissionWorkflow(ISubmissionStore store, IAnalyzerFactory 
 
         await store.CreateRunAsync(run, cancellationToken);
 
+        // Data Transfer Object pattern: expose identifiers and status while the result remains retrievable separately.
         return new RunCreatedResponse(run.Id, submissionId, run.Status);
     }
 

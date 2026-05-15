@@ -4,6 +4,7 @@ namespace ChatClientShared.OpenAIChatClientShared;
 
 public sealed record OpenAIChatClientSettings(Uri Endpoint, string ApiKey, string Model)
 {
+    // Options pattern: one immutable settings record carries the OpenAI client configuration.
     public const string ConfigurationSectionName = "OpenAI";
     public const string DefaultEndpoint = "https://api.openai.com/v1";
     public const string DefaultModel = "gpt-5-mini";

@@ -41,8 +41,76 @@ public sealed class ChatClientAnalyzer : IAnalyzer
         var payload = JsonSerializer.Serialize(submission, new JsonSerializerOptions { WriteIndented = true });
 
         return
-            "You are a cloud security architect. Create a concise threat model from the submission. " +
-            "Return only valid JSON with summary, assets, trustBoundaries, threats, topPriorities, and controlRecommendations." +
+            """
+            You are a cloud security architect performing authorized defensive threat modeling.
+            Analyze the submitted system for realistic cloud security risks, focusing on STRIDE categories,
+            cloud control gaps, affected assets, trust boundaries, assumptions, evidence, mitigations, and
+            prioritized remediation.
+
+            Return only valid JSON. Do not include markdown, comments, or explanatory text outside the JSON.
+            Use this exact top-level schema:
+            {
+              "summary": "string",
+              "scope": {
+                "applicationName": "string",
+                "businessPurpose": "string",
+                "internetExposure": "string",
+                "assumptions": ["string"]
+              },
+              "assets": [
+                {
+                  "name": "string",
+                  "type": "data|identity|service|infrastructure|secret|thirdParty|other",
+                  "sensitivity": "low|medium|high|critical",
+                  "whyItMatters": "string"
+                }
+              ],
+              "trustBoundaries": [
+                {
+                  "name": "string",
+                  "description": "string",
+                  "crossingDataFlows": ["string"],
+                  "risks": ["string"]
+                }
+              ],
+              "threats": [
+                {
+                  "id": "T1",
+                  "component": "string",
+                  "strideCategory": "Spoofing|Tampering|Repudiation|InformationDisclosure|DenialOfService|ElevationOfPrivilege",
+                  "threatStatement": "string",
+                  "affectedAssets": ["string"],
+                  "trustBoundary": "string",
+                  "evidence": ["string"],
+                  "likelihood": "low|medium|high",
+                  "impact": "low|medium|high|critical",
+                  "risk": "low|medium|high|critical",
+                  "cloudControlGaps": ["string"],
+                  "recommendedMitigations": ["string"]
+                }
+              ],
+              "topPriorities": [
+                {
+                  "rank": 1,
+                  "threatId": "T1",
+                  "priority": "string",
+                  "rationale": "string",
+                  "firstStep": "string"
+                }
+              ],
+              "controlRecommendations": [
+                {
+                  "control": "string",
+                  "mappedThreatIds": ["T1"],
+                  "implementationNotes": "string",
+                  "verification": "string"
+                }
+              ]
+            }
+
+            Keep the response concise but specific. If evidence is missing, state the assumption instead of inventing facts.
+            Submission:
+            """ +
             Environment.NewLine +
             payload;
     }

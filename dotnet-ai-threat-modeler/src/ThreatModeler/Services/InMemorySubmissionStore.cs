@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using ThreatModeler.Interfaces;
 using ThreatModeler.Models;
 
 namespace ThreatModeler.Services;

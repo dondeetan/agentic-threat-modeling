@@ -1,6 +1,7 @@
 using ChatClientShared.AzureOpenAIChatClientShared;
 using ChatClientShared.OpenAIChatClientShared;
 using ThreatModeler.Configuration;
+using ThreatModeler.Interfaces;
 using ThreatModeler.Services;
 
 var builder = WebApplication.CreateBuilder(args);

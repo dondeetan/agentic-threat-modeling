@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using ThreatModeler.Configuration;
+using ThreatModeler.Interfaces;
 using ThreatModeler.Models;
-using ThreatModeler.Services;
 
 namespace Api.Controllers;
 

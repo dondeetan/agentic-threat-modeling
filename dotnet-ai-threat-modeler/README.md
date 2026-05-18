@@ -25,9 +25,20 @@ Follows the pattern references under `DotNet/Patterns` in [dondeetan/best-practi
 - **Facade pattern**: `SubmissionWorkflow` gives the API one application-service entry point for submit, analyze, and result retrieval.
 - **Repository pattern**: `ISubmissionStore` hides in-memory and future Cosmos DB persistence.
 - **Proxy pattern**: `CosmosSubmissionStore` preserves the Cosmos-facing repository contract until the live SDK implementation is added.
-- **SOLID principles**: workflow orchestration, analyzer selection, persistence, and endpoint composition are separated so each type has a focused reason to change.
+- **Provider pattern**: `IPromptContextProvider` retrieves prompt rules, guidelines, and output format independently of analyzer transport.
+- **Builder pattern**: `IPromptBuilder` composes retrieved prompt context with a submitted system description.
+- **SOLID principles**: workflow orchestration, analyzer selection, prompt retrieval, prompt composition, persistence, and endpoint composition are separated so each type has a focused reason to change.
 
 The code includes short comments at the implementation points where these patterns or principles are applied.
+
+## Prompt context retrieval
+
+`ChatClientAnalyzer` no longer hardcodes the full model prompt. It depends on two abstractions:
+
+- `IPromptContextProvider` retrieves system rules, guideline fragments, and the required output schema.
+- `IPromptBuilder` assembles the retrieved context and serialized `Submission` into the final model prompt.
+
+The current implementation, `FilePromptContextProvider`, is a deterministic local RAG-style provider. It always loads baseline rules from `src/ThreatModeler/Prompts` and conditionally includes focused guidance for cloud controls, identity, and data protection based on submission details. This keeps mandatory instructions and the JSON output format auditable while leaving a clean upgrade path to Azure AI Search, vector search, or another retrieval dependency later.
 
 ## What this repo includes
 
@@ -37,9 +48,10 @@ The code includes short comments at the implementation points where these patter
   - `GET /results/{runId}`
   - `GET /health`
 - Chat-client analyzer support for OpenAI and Azure OpenAI
+- File-backed prompt context retrieval for rules, guidelines, and output format
 - Analyzer factory for OpenAI, Azure OpenAI, and mock analyzers
 - Cosmos DB repository scaffold with in-memory local store
-- Tests for workflow, store behavior, mock analyzer behavior, and analyzer selection
+- Tests for workflow, store behavior, mock analyzer behavior, analyzer selection, prompt retrieval, and prompt composition
 
 ## Repository structure
 
@@ -56,7 +68,9 @@ dotnet-ai-threat-modeler/
 |   |   \-- Api.csproj
 |   +-- ThreatModeler/
 |   |   +-- Configuration/
+|   |   +-- Interfaces/
 |   |   +-- Models/
+|   |   +-- Prompts/
 |   |   \-- Services/
 |   \-- ThreatModeler.Tests/
 +-- docs/
@@ -111,14 +125,14 @@ When `AnalyzerType` is `azure-openai`, configure the `AzureOpenAI` section with 
 dotnet run --project src/Api
 ```
 
-The API starts on the ASP.NET Core assigned local port, commonly `http://localhost:5099`.
+The API starts on `http://localhost:8085`.
 
 ## Example flow
 
 ### Submit
 
 ```bash
-curl -X POST http://localhost:5099/submit \
+curl -X POST http://localhost:8085/submit \
   -H "Content-Type: application/json" \
   -d '{
     "tenantId": "tenant-demo",
@@ -140,17 +154,18 @@ curl -X POST http://localhost:5099/submit \
 ### Analyze
 
 ```bash
-curl -X POST "http://localhost:5099/analyze/<submissionId>?tenantId=tenant-demo"
+curl -X POST "http://localhost:8085/analyze/<submissionId>?tenantId=tenant-demo"
 ```
 
 ### Results
 
 ```bash
-curl "http://localhost:5099/results/<runId>?tenantId=tenant-demo"
+curl "http://localhost:8085/results/<runId>?tenantId=tenant-demo"
 ```
 
 ## Integration notes
 
 - OpenAI is the default analyzer and can produce threat-model output from the submitted application context.
 - Azure OpenAI uses the shared `ChatClientShared` factory and can be selected with `App:AnalyzerType`.
+- Prompt rules and output schema are loaded from `src/ThreatModeler/Prompts`; keep mandatory schema guidance deterministic even if vector retrieval is added later.
 - Cosmos DB remains behind `ISubmissionStore`; switch `UseInMemoryStore=false` only after adding the live Cosmos SDK implementation.

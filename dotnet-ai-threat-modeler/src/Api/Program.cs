@@ -22,15 +22,22 @@ builder.Services.AddSingleton<ISubmissionStore>(_ =>
     appOptions.UseInMemoryStore ? new InMemorySubmissionStore() : new CosmosSubmissionStore(cosmosOptions));
 
 // Dependency Inversion Principle: the API depends on workflow/analyzer abstractions, not concrete implementations.
+// Provider + Builder patterns: prompt retrieval and prompt composition can evolve independently of analyzer transport.
+builder.Services.AddSingleton<IPromptContextProvider, FilePromptContextProvider>();
+builder.Services.AddSingleton<IPromptBuilder, PromptBuilder>();
 builder.Services.AddSingleton<IAnalyzer, MockAnalyzer>();
-builder.Services.AddSingleton<IAnalyzer>(_ =>
+builder.Services.AddSingleton<IAnalyzer>(serviceProvider =>
     new ChatClientAnalyzer(
         AnalyzerTypes.OpenAi,
-        () => OpenAIChatClientFactory.Create(builder.Configuration)));
-builder.Services.AddSingleton<IAnalyzer>(_ =>
+        () => OpenAIChatClientFactory.Create(builder.Configuration),
+        serviceProvider.GetRequiredService<IPromptContextProvider>(),
+        serviceProvider.GetRequiredService<IPromptBuilder>()));
+builder.Services.AddSingleton<IAnalyzer>(serviceProvider =>
     new ChatClientAnalyzer(
         AnalyzerTypes.AzureOpenAi,
-        () => AzureOpenAIChatClientFactory.Create(builder.Configuration)));
+        () => AzureOpenAIChatClientFactory.Create(builder.Configuration),
+        serviceProvider.GetRequiredService<IPromptContextProvider>(),
+        serviceProvider.GetRequiredService<IPromptBuilder>()));
 builder.Services.AddSingleton<IAnalyzerFactory, AnalyzerFactory>();
 builder.Services.AddSingleton<ISubmissionWorkflow>(serviceProvider =>
     new SubmissionWorkflow(

@@ -9,20 +9,31 @@ public sealed class ChatClientAnalyzer : IAnalyzer
 {
     // Lazy initialization defers external client creation until this strategy is actually selected.
     private readonly Lazy<IChatClient> _chatClient;
+    private readonly IPromptContextProvider _promptContextProvider;
+    private readonly IPromptBuilder _promptBuilder;
 
-    public ChatClientAnalyzer(string analyzerType, Func<IChatClient> chatClientFactory)
+    public ChatClientAnalyzer(
+        string analyzerType,
+        Func<IChatClient> chatClientFactory,
+        IPromptContextProvider? promptContextProvider = null,
+        IPromptBuilder? promptBuilder = null)
     {
         AnalyzerType = analyzerType;
         _chatClient = new Lazy<IChatClient>(chatClientFactory);
+        _promptContextProvider = promptContextProvider ?? new FilePromptContextProvider();
+        _promptBuilder = promptBuilder ?? new PromptBuilder();
     }
 
     public string AnalyzerType { get; }
 
     public async Task<object> AnalyzeAsync(Submission submission, CancellationToken cancellationToken = default)
     {
+        // RAG-style context provider: analyzer asks for prompt context without knowing how it is retrieved.
+        var promptContext = await _promptContextProvider.GetContextAsync(submission, cancellationToken);
+
         // Strategy pattern: this implementation delegates analysis to a configured chat client.
         var response = await _chatClient.Value.GetResponseAsync(
-            BuildPrompt(submission),
+            _promptBuilder.Build(submission, promptContext),
             cancellationToken: cancellationToken);
 
         var json = TryReadJson(response.Text);
@@ -37,86 +48,6 @@ public sealed class ChatClientAnalyzer : IAnalyzer
             analyzer = AnalyzerType,
             result = response.Text
         };
-    }
-
-    private static string BuildPrompt(Submission submission)
-    {
-        // Single Responsibility Principle: prompt construction is isolated from transport and parsing logic.
-        var payload = JsonSerializer.Serialize(submission, new JsonSerializerOptions { WriteIndented = true });
-
-        return
-            """
-            You are a cloud security architect performing authorized defensive threat modeling.
-            Analyze the submitted system for realistic cloud security risks, focusing on STRIDE categories,
-            cloud control gaps, affected assets, trust boundaries, assumptions, evidence, mitigations, and
-            prioritized remediation.
-
-            Return only valid JSON. Do not include markdown, comments, or explanatory text outside the JSON.
-            Use this exact top-level schema:
-            {
-              "summary": "string",
-              "scope": {
-                "applicationName": "string",
-                "businessPurpose": "string",
-                "internetExposure": "string",
-                "assumptions": ["string"]
-              },
-              "assets": [
-                {
-                  "name": "string",
-                  "type": "data|identity|service|infrastructure|secret|thirdParty|other",
-                  "sensitivity": "low|medium|high|critical",
-                  "whyItMatters": "string"
-                }
-              ],
-              "trustBoundaries": [
-                {
-                  "name": "string",
-                  "description": "string",
-                  "crossingDataFlows": ["string"],
-                  "risks": ["string"]
-                }
-              ],
-              "threats": [
-                {
-                  "id": "T1",
-                  "component": "string",
-                  "strideCategory": "Spoofing|Tampering|Repudiation|InformationDisclosure|DenialOfService|ElevationOfPrivilege",
-                  "threatStatement": "string",
-                  "affectedAssets": ["string"],
-                  "trustBoundary": "string",
-                  "evidence": ["string"],
-                  "likelihood": "low|medium|high",
-                  "impact": "low|medium|high|critical",
-                  "risk": "low|medium|high|critical",
-                  "cloudControlGaps": ["string"],
-                  "recommendedMitigations": ["string"]
-                }
-              ],
-              "topPriorities": [
-                {
-                  "rank": 1,
-                  "threatId": "T1",
-                  "priority": "string",
-                  "rationale": "string",
-                  "firstStep": "string"
-                }
-              ],
-              "controlRecommendations": [
-                {
-                  "control": "string",
-                  "mappedThreatIds": ["T1"],
-                  "implementationNotes": "string",
-                  "verification": "string"
-                }
-              ]
-            }
-
-            Keep the response concise but specific. If evidence is missing, state the assumption instead of inventing facts.
-            Submission:
-            """ +
-            Environment.NewLine +
-            payload;
     }
 
     private static JsonElement? TryReadJson(string text)

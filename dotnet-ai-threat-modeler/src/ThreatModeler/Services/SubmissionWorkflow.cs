@@ -1,16 +1,14 @@
+using ThreatModeler.Interfaces;
 using ThreatModeler.Models;
 
 namespace ThreatModeler.Services;
 
-public interface ISubmissionWorkflow
-{
-    Task<SubmissionCreatedResponse> CreateSubmissionAsync(SubmissionRequest request, CancellationToken cancellationToken);
-    Task<RunCreatedResponse?> AnalyzeSubmissionAsync(string submissionId, string tenantId, CancellationToken cancellationToken);
-    Task<ThreatModelRun?> GetResultsAsync(string runId, string tenantId, CancellationToken cancellationToken);
-}
-
+/// <summary>
+/// Coordinates submission persistence, analyzer selection, and result retrieval for API callers.
+/// </summary>
 public sealed class SubmissionWorkflow(ISubmissionStore store, IAnalyzerFactory analyzerFactory, string analyzerType) : ISubmissionWorkflow
 {
+    /// <inheritdoc />
     public async Task<SubmissionCreatedResponse> CreateSubmissionAsync(
         SubmissionRequest request,
         CancellationToken cancellationToken)
@@ -38,6 +36,7 @@ public sealed class SubmissionWorkflow(ISubmissionStore store, IAnalyzerFactory 
         return new SubmissionCreatedResponse(submission.Id, submission.TenantId, submission.Status);
     }
 
+    /// <inheritdoc />
     public async Task<RunCreatedResponse?> AnalyzeSubmissionAsync(
         string submissionId,
         string tenantId,
@@ -64,6 +63,7 @@ public sealed class SubmissionWorkflow(ISubmissionStore store, IAnalyzerFactory 
         return new RunCreatedResponse(run.Id, submissionId, run.Status);
     }
 
+    /// <inheritdoc />
     public Task<ThreatModelRun?> GetResultsAsync(
         string runId,
         string tenantId,
@@ -74,6 +74,12 @@ public sealed class SubmissionWorkflow(ISubmissionStore store, IAnalyzerFactory 
     }
 }
 
+/// <summary>
+/// Response returned after a submission is accepted.
+/// </summary>
 public sealed record SubmissionCreatedResponse(string Id, string TenantId, string Status);
 
+/// <summary>
+/// Response returned after a threat model analysis run is created.
+/// </summary>
 public sealed record RunCreatedResponse(string RunId, string SubmissionId, string Status);

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.Extensions.AI;
+using ThreatModeler.Interfaces;
 using ThreatModeler.Models;
 
 namespace ThreatModeler.Services;

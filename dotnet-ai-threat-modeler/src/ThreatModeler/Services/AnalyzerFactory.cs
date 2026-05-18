@@ -1,4 +1,5 @@
 using ThreatModeler.Configuration;
+using ThreatModeler.Interfaces;
 
 namespace ThreatModeler.Services;
 

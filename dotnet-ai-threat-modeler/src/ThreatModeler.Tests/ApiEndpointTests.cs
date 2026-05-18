@@ -1,4 +1,5 @@
 using ThreatModeler.Models;
+using ThreatModeler.Interfaces;
 using ThreatModeler.Services;
 using Xunit;
 

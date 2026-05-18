@@ -9,6 +9,7 @@ public static class OpenAIChatClientFactory
 {
     public static IChatClient Create(IConfiguration config)
     {
+        // Factory Method pattern: configuration is translated into a ready-to-use chat client.
         OpenAIChatClientSettings settings = OpenAIChatClientSettings.FromConfiguration(config);
 
         return Create(settings);
@@ -18,6 +19,7 @@ public static class OpenAIChatClientFactory
     {
         ArgumentNullException.ThrowIfNull(settings);
 
+        // Adapter pattern: the OpenAI SDK chat client is adapted to Microsoft.Extensions.AI.IChatClient.
         OpenAIClientOptions options = new()
         {
             Endpoint = settings.Endpoint

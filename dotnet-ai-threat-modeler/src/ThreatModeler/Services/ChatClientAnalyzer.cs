@@ -7,6 +7,7 @@ namespace ThreatModeler.Services;
 
 public sealed class ChatClientAnalyzer : IAnalyzer
 {
+    // Lazy initialization defers external client creation until this strategy is actually selected.
     private readonly Lazy<IChatClient> _chatClient;
 
     public ChatClientAnalyzer(string analyzerType, Func<IChatClient> chatClientFactory)
@@ -19,6 +20,7 @@ public sealed class ChatClientAnalyzer : IAnalyzer
 
     public async Task<object> AnalyzeAsync(Submission submission, CancellationToken cancellationToken = default)
     {
+        // Strategy pattern: this implementation delegates analysis to a configured chat client.
         var response = await _chatClient.Value.GetResponseAsync(
             BuildPrompt(submission),
             cancellationToken: cancellationToken);
@@ -39,6 +41,7 @@ public sealed class ChatClientAnalyzer : IAnalyzer
 
     private static string BuildPrompt(Submission submission)
     {
+        // Single Responsibility Principle: prompt construction is isolated from transport and parsing logic.
         var payload = JsonSerializer.Serialize(submission, new JsonSerializerOptions { WriteIndented = true });
 
         return
@@ -118,6 +121,7 @@ public sealed class ChatClientAnalyzer : IAnalyzer
 
     private static JsonElement? TryReadJson(string text)
     {
+        // Adapter-style normalization: structured model output is returned as JSON, otherwise wrapped consistently.
         try
         {
             return JsonSerializer.Deserialize<JsonElement>(text);

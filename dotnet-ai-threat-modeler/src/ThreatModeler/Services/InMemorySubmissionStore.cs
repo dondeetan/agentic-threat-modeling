@@ -6,6 +6,7 @@ namespace ThreatModeler.Services;
 
 public sealed class InMemorySubmissionStore : ISubmissionStore
 {
+    // Repository pattern: storage mechanics stay hidden behind ISubmissionStore.
     private readonly ConcurrentDictionary<(string TenantId, string SubmissionId), Submission> _submissions = new();
     private readonly ConcurrentDictionary<(string TenantId, string RunId), ThreatModelRun> _runs = new();
 

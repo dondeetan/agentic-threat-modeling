@@ -10,6 +10,7 @@ public sealed class MockAnalyzer : IAnalyzer
 
     public Task<object> AnalyzeAsync(Submission submission, CancellationToken cancellationToken = default)
     {
+        // Strategy pattern: deterministic analysis can replace AI-backed analysis for tests and local demos.
         var components = submission.Components;
         var result = new
         {

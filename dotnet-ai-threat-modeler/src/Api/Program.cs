@@ -17,6 +17,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Factory Method pattern: configuration chooses the repository implementation while callers depend on ISubmissionStore.
 builder.Services.AddSingleton<ISubmissionStore>(_ =>
     appOptions.UseInMemoryStore ? new InMemorySubmissionStore() : new CosmosSubmissionStore(cosmosOptions));
 

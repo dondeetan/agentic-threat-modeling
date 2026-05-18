@@ -18,7 +18,7 @@ This repository implements the API and orchestration core of that architecture. 
 
 ## Design approach
 
-The refactor follows the pattern references under `DotNet/Patterns` in `dondeetan/best-practices-poc`:
+Follows the pattern references under `DotNet/Patterns` in [dondeetan/best-practices-poc](https://github.com/dondeetan/best-practices-poc):
 
 - **Strategy pattern**: `IAnalyzer` allows `ChatClientAnalyzer` and `MockAnalyzer` to be swapped without changing workflow code.
 - **Factory Method pattern**: `AnalyzerFactory` selects the configured analyzer. `openai` is the default.

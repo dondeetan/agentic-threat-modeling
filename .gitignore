@@ -67,3 +67,4 @@ artifacts/
 
 # Azure / local tooling
 local.settings.json
+*.lscache

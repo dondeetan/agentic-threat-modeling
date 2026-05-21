@@ -8,8 +8,13 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
 
+    analyzer_type: str = "openai"
     use_mock_analyzer: bool = True
     use_in_memory_store: bool = True
+
+    openai_endpoint: str = "https://api.openai.com/v1"
+    openai_api_key: str | None = None
+    openai_model: str = "gpt-4o-mini"
 
     cosmos_endpoint: str | None = None
     cosmos_key: str | None = None

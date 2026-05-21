@@ -8,8 +8,10 @@ class StoreProtocol(Protocol):
     def create_run(self, doc: dict) -> dict: ...
     def get_run(self, run_id: str, tenant_id: str) -> dict | None: ...
 
+
 class InMemoryStore:
     def __init__(self) -> None:
+        # Repository pattern: storage mechanics stay hidden behind StoreProtocol.
         self.submissions: dict[tuple[str, str], dict] = {}
         self.runs: dict[tuple[str, str], dict] = {}
 
@@ -32,6 +34,7 @@ _store: StoreProtocol | None = None
 def get_store() -> StoreProtocol:
     global _store
     if _store is None:
+        # Factory Method pattern: configuration chooses the repository implementation while callers depend on StoreProtocol.
         if settings.use_in_memory_store:
             _store = InMemoryStore()
         else:

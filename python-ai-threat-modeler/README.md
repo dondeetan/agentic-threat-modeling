@@ -1,104 +1,115 @@
 # Python AI Threat Modeler MVP
 
-A runnable FastAPI MVP for automated security threat modeling in an Azure/Microsoft environment.
+A runnable FastAPI service for automated security threat modeling. The Python implementation mirrors the `dotnet-ai-threat-modeler` architecture: API routes delegate orchestration to a submission workflow, analyzers are selected through a factory, prompt context is loaded from local files, and persistence stays behind a repository contract.
 
-## What this repo includes
+## Design Approach
+
+Follows the pattern references under `DotNet/Patterns` in [dondeetan/best-practices-poc](https://github.com/dondeetan/best-practices-poc):
+
+- **Strategy pattern**: `AnalyzerProtocol` allows `ChatClientAnalyzer` and `MockAnalyzer` to be swapped without changing workflow code.
+- **Factory Method pattern**: `AnalyzerFactory` selects the configured analyzer. `openai` is the default configured analyzer, while `USE_MOCK_ANALYZER=true` keeps local runs deterministic.
+- **Facade pattern**: `SubmissionWorkflow` gives the API one application-service entry point for submit, analyze, and result retrieval.
+- **Repository pattern**: `StoreProtocol` hides in-memory and Cosmos DB persistence.
+- **Proxy pattern**: `CosmosStore` preserves the Cosmos-facing repository contract.
+- **Provider pattern**: `FilePromptContextProvider` retrieves prompt rules, guidelines, and output format independently of analyzer transport.
+- **Builder pattern**: `PromptBuilder` composes retrieved prompt context with a submitted system description.
+- **SOLID principles**: workflow orchestration, analyzer selection, prompt retrieval, prompt composition, persistence, and route composition are separated so each type has a focused reason to change.
+
+The code includes short comments at the implementation points where these patterns or principles are applied.
+
+## Prompt Context Retrieval
+
+`ChatClientAnalyzer` does not hardcode the full model prompt. It depends on:
+
+- `FilePromptContextProvider`, which loads system rules, guideline fragments, and the required output schema from `src/app/prompts`.
+- `PromptBuilder`, which assembles the retrieved context and serialized `Submission` into the final prompt.
+
+The provider always loads baseline threat-modeling and STRIDE guidance. It conditionally includes cloud, identity, and data-protection guidance based on submitted components, data flows, trust boundaries, authentication details, sensitive data, and internet exposure.
+
+## What This Repo Includes
 
 - FastAPI API with endpoints:
   - `POST /submit`
-  - `POST /analyze/{submission_id}`
-  - `GET /results/{run_id}`
+  - `POST /analyze/{submission_id}?tenantId=...`
+  - `GET /results/{run_id}?tenantId=...`
   - `GET /health`
-- Cosmos DB support with **local in-memory fallback**
-- Azure OpenAI client support with **mock analyzer fallback**
-- Basic STRIDE-based threat model generation
-- Blob/Cosmos/Azure OpenAI configuration via environment variables
-- Tests for the main flow
+- OpenAI, Azure OpenAI, and mock analyzers behind one factory
+- File-backed prompt context retrieval for rules, guidelines, and output format
+- Cosmos DB repository implementation with in-memory local store
+- Tests for API flow, workflow behavior, store behavior, analyzer selection/output handling, prompt retrieval, and prompt composition
 
-## Repository structure
+## Repository Structure
 
 ```text
-python-ai-threat-modeler-mvp/
-├─ README.md
-├─ .env.example
-├─ requirements.txt
-├─ pyproject.toml
-├─ src/
-│  └─ app/
-│     ├─ main.py
-│     ├─ api/routes.py
-│     ├─ core/
-│     │  ├─ config.py
-│     │  └─ logging.py
-│     ├─ domain/
-│     │  ├─ models.py
-│     │  └─ schemas.py
-│     ├─ services/
-│     │  ├─ analyzer.py
-│     │  ├─ prompts.py
-│     │  └─ storage.py
-│     └─ integrations/
-│        ├─ azure_openai.py
-│        └─ cosmos.py
-├─ tests/
-│  └─ test_api.py
-├─ docs/
-│  └─ cosmos-schema.md
-└─ cosmos/
-   └─ schema-examples.json
+python-ai-threat-modeler/
++-- README.md
++-- .env.example
++-- requirements.txt
++-- pyproject.toml
++-- src/
+|   \-- app/
+|       +-- main.py
+|       +-- api/routes.py
+|       +-- core/
+|       +-- domain/
+|       +-- integrations/
+|       +-- prompts/
+|       \-- services/
++-- tests/
++-- docs/
+|   \-- cosmos-schema.md
+\-- cosmos/
+    \-- schema-examples.json
 ```
 
-## Local development prerequisites
+## Local Development
+
+Prerequisites:
 
 - Python 3.11+
-- Optional:
-  - Azure Cosmos DB account
-  - Azure OpenAI deployment
+- Optional Azure Cosmos DB account
+- Optional OpenAI or Azure OpenAI deployment
 
-## Quick start
-
-### 1) Create and activate a virtual environment
-
-Windows PowerShell:
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-macOS/Linux:
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-### 2) Install dependencies
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3) Configure environment
+Configure environment:
 
-Copy `.env.example` to `.env` and update values as needed.
+```bash
+cp .env.example .env
+```
 
-- Leave `USE_MOCK_ANALYZER=true` to run locally without Azure OpenAI.
-- Leave `USE_IN_MEMORY_STORE=true` to run locally without Cosmos DB.
+Recommended local defaults:
 
-### 4) Run locally
+```text
+USE_MOCK_ANALYZER=true
+USE_IN_MEMORY_STORE=true
+ANALYZER_TYPE=openai
+```
+
+Supported analyzer types:
+
+- `openai`
+- `azure-openai`
+- `mock`
+
+When `ANALYZER_TYPE=openai`, set `OPENAI_API_KEY`, `OPENAI_ENDPOINT`, and `OPENAI_MODEL`.
+When `ANALYZER_TYPE=azure-openai`, set the Azure OpenAI values in `.env`.
+
+Run locally:
 
 ```bash
 uvicorn src.app.main:app --reload
 ```
 
-The API will start on `http://127.0.0.1:8000`.
+The API starts on `http://127.0.0.1:8000`.
 
-### 5) Open API docs
+## Example Flow
 
-- Swagger UI: `http://127.0.0.1:8000/docs`
-
-## Example flow
-
-### Submit a workload
+Submit a workload:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/submit \
@@ -111,6 +122,7 @@ curl -X POST http://127.0.0.1:8000/submit \
     "components": ["React SPA", "API Management", "App Service", "Azure SQL"],
     "dataFlows": ["Browser to SPA", "SPA to API Management", "App Service to Azure SQL"],
     "trustBoundaries": ["Internet to Azure Edge", "Application Tier to Data Tier"],
+    "openApiDocument": "{\"openapi\":\"3.0.1\"}",
     "authenticationDetails": "Entra ID for users, Managed Identity for service-to-service",
     "sensitiveData": ["PII", "financial data"],
     "internetExposure": "Public SPA and API entrypoint",
@@ -119,42 +131,36 @@ curl -X POST http://127.0.0.1:8000/submit \
   }'
 ```
 
-### Analyze the submitted workload
+Analyze:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/analyze/<submission_id>
+curl -X POST "http://127.0.0.1:8000/analyze/<submission_id>?tenantId=tenant-demo"
 ```
 
-### Fetch the results
+Fetch results:
 
 ```bash
-curl http://127.0.0.1:8000/results/<run_id>
+curl "http://127.0.0.1:8000/results/<run_id>?tenantId=tenant-demo"
 ```
 
-## Local test run
+## Tests
 
 ```bash
 pytest
 ```
 
-## Cosmos DB design
+## Cosmos DB Design
 
 See:
+
 - `docs/cosmos-schema.md`
 - `cosmos/schema-examples.json`
 
 Recommended containers:
+
 - `submissions`
 - `threatModelRuns`
-- `threatFindings`
-- `reviews`
-- `workItemLinks`
 
 Recommended partition key:
+
 - `/tenantId`
-
-## Notes
-
-- This MVP is designed to be **runnable first**, then connected to Azure services.
-- The mock analyzer gives you deterministic results for development and demos.
-- When you are ready for Azure OpenAI, set `USE_MOCK_ANALYZER=false` and populate the Azure values in `.env`.

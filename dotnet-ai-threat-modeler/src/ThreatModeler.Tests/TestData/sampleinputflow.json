@@ -1,0 +1,55 @@
+{
+    "tenantId": "tenant-demo",
+    "applicationName": "mutlti-cloud-integration app",
+    "businessPurpose": "This application allows users to manage their data through a web interface, integrating with various cloud services for data storage and processing.",
+    "architectureSummary": "On-Premises upstream systems to SaaS Cloud Provider1 to downstreanm applications hosted in Cloud Provider 2",
+    "components": [
+        "Java Rest API",
+        "Python Rest API",
+        "Azure App Gateway",
+        "Azure Data Storage",
+        "Azure Copy",
+        "Azure Kubernetes Service (AKS)"
+    ],
+    "dataFlows": [
+        "On-Premises Api to SaaS Cloud Provider 1",
+        "Cloud Provider 1 to Azure App Gateway",
+        "App Gateway to AKS hosting Java Rest API",
+        "Python Rest API to Azure Data Storage",
+        "App Gateway to AKS hosting Java Rest API",
+        "Python Rest API to Azure Data Storage",
+        "Azure Copy to Cloud Provider 2"
+    ],
+    "trustBoundaries": [
+        "Internet to Azure App Gateway",
+        "SaaS to Azure App Gateway",
+        "Azure App Gateway to AKS",
+        "AKS to Azure Data Storage",
+        "Azure Copy to Cloud Provider 2"
+    ],
+    "openAiDocument": "{\"modelContext\":\"Test document for multi-cloud integration application.\"}",
+    "authenticationDetails": "Entra ID for users, Managed Identity for service-to-service, OAuth 2.0 for third-party integrations, with role-based access control (RBAC) implemented for all components.",
+    "sensitiveData": [
+        "PII",
+        "financial data"
+    ],
+    "internetExposure": "Public SaaS and API entrypoint",
+    "existingControls": [
+        "WAF",
+        "Key Vault",
+        "Defender for Cloud",
+        "Azure Security Center",
+        "Azure Sentinel",
+        "Azure DDoS Protection",
+        "Azure Firewall",
+        "Azure Virtual Network (VNet) with subnets and NSGs",
+        "Azure AD Conditional Access Policies"
+    ],
+    "assumptions": [
+        "No public access to Azure Storage accounts",
+        "All data in transit is encrypted",
+        "All data at rest is encrypted",
+        "Regular security assessments are conducted",
+        "Third-party services comply with security standards"
+    ]
+}

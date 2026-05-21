@@ -1,0 +1,466 @@
+{
+  "id": "run-9fe86624-fc15-4dca-817c-bd1092ec5a37",
+  "tenantId": "tenant-demo",
+  "submissionId": "sub-26655018-0b66-4268-a67d-4a74c6901f3d",
+  "analyzerType": "openai",
+  "status": "completed",
+  "result": {
+    "summary": "Threat model for a multi-cloud integration web application that exposes public SaaS and APIs, integrates with SaaS Cloud Provider1, runs workloads in Azure (App Gateway, AKS, Storage, Key Vault) and copies data to Cloud Provider2. Primary risks include data exfiltration of PII/financial data, identity/privilege misuse, compromised AKS workloads, secrets leakage through CI/CD or images, and insufficient auditability across cross-cloud flows. Recommended mitigations emphasize private endpoints, least-privilege identities, strong token validation, image supply-chain controls, hardened AKS runtime controls, and verifiable logging/alerting.",
+    "scope": {
+      "applicationName": "mutlti-cloud-integration app",
+      "businessPurpose": "This application allows users to manage their data through a web interface, integrating with various cloud services for data storage and processing.",
+      "internetExposure": "Public SaaS and API entrypoint",
+      "assumptions": [
+        "No public access to Azure Storage accounts (stated assumption; evidence not provided for storage firewall/private endpoints)",
+        "All data in transit is encrypted (stated assumption; evidence of TLS termination and token validation not provided)",
+        "All data at rest is encrypted (stated assumption; evidence of CMK usage or key ownership not provided)",
+        "Regular security assessments are conducted (stated assumption; evidence of frequency and scope not provided)",
+        "Third-party services comply with security standards (stated assumption; evidence such as SOC reports or contracts not provided)"
+      ]
+    },
+    "assets": [
+      {
+        "name": "PII and financial data",
+        "type": "data",
+        "sensitivity": "critical",
+        "whyItMatters": "Contains regulated and high-impact customer data whose exposure causes legal, reputational, and financial harm."
+      },
+      {
+        "name": "Entra ID (Azure AD) identities and tokens",
+        "type": "identity",
+        "sensitivity": "high",
+        "whyItMatters": "Primary authentication and authorization source; compromise enables access to cloud resources and sensitive data."
+      },
+      {
+        "name": "Managed Identities and service principals",
+        "type": "identity",
+        "sensitivity": "high",
+        "whyItMatters": "Used for service-to-service auth; over-privilege or credential compromise enables lateral movement and data access."
+      },
+      {
+        "name": "Azure Key Vault and secrets",
+        "type": "secret",
+        "sensitivity": "critical",
+        "whyItMatters": "Holds keys, certificates, and secrets protecting data-at-rest and service authentication; exposure undermines encryption and auth."
+      },
+      {
+        "name": "AKS cluster (workload runtime)",
+        "type": "infrastructure",
+        "sensitivity": "high",
+        "whyItMatters": "Hosts application code (Java, Python APIs); compromise can lead to data exfiltration, tampering, or pivoting to other cloud resources."
+      },
+      {
+        "name": "Azure Storage (data stores)",
+        "type": "service",
+        "sensitivity": "critical",
+        "whyItMatters": "Primary storage for application data (PII/financial). Misconfiguration or exfiltration here is high impact."
+      },
+      {
+        "name": "Azure App Gateway (ingress/WAF)",
+        "type": "infrastructure",
+        "sensitivity": "medium",
+        "whyItMatters": "Public ingress point that must enforce authentication, filtering, and rate limits; bypass or misconfiguration exposes APIs."
+      },
+      {
+        "name": "Azure Copy / data transfer to Cloud Provider 2",
+        "type": "service",
+        "sensitivity": "high",
+        "whyItMatters": "Cross-cloud transfer increases exposure surface; misconfiguration or insecure transfer can leak data to third-party cloud."
+      },
+      {
+        "name": "Third-party SaaS (Cloud Provider1) and downstream Cloud Provider2",
+        "type": "thirdParty",
+        "sensitivity": "high",
+        "whyItMatters": "Third parties participate in critical flows; their compromise or noncompliance impacts confidentiality and availability."
+      },
+      {
+        "name": "CI/CD pipelines, container images, IaC templates",
+        "type": "other",
+        "sensitivity": "high",
+        "whyItMatters": "Supply chain components can introduce malicious code or leak secrets if not validated and protected."
+      }
+    ],
+    "trustBoundaries": [
+      {
+        "name": "Internet to Azure App Gateway",
+        "description": "Public ingress where external clients and SaaS integrations access APIs via App Gateway/WAF.",
+        "crossingDataFlows": [
+          "Cloud Provider 1 to Azure App Gateway",
+          "On-Premises Api to SaaS Cloud Provider 1 (indirectly)",
+          "Internet-originated API calls to App Gateway"
+        ],
+        "risks": [
+          "Unauthenticated or malformed requests reaching backend APIs",
+          "Brute-force, credential stuffing, token replay, or API abuse",
+          "DDoS/L7 attacks bypassing filtering if WAF/rate limits misconfigured"
+        ]
+      },
+      {
+        "name": "Azure App Gateway to AKS",
+        "description": "Internal ingress to Kubernetes cluster hosting APIs.",
+        "crossingDataFlows": [
+          "App Gateway to AKS hosting Java Rest API",
+          "App Gateway to AKS hosting Python Rest API"
+        ],
+        "risks": [
+          "Insufficient mTLS/authentication allowing lateral calls or header spoofing",
+          "Network policy gaps enabling east-west movement inside VNet"
+        ]
+      },
+      {
+        "name": "AKS to Azure Data Storage",
+        "description": "Workloads in AKS access storage accounts for persistent data.",
+        "crossingDataFlows": [
+          "Python Rest API to Azure Data Storage",
+          "Java Rest API (if applicable) to Azure Data Storage"
+        ],
+        "risks": [
+          "Compromised pods accessing or modifying sensitive data",
+          "Improperly scoped identities allowing broad storage access"
+        ]
+      },
+      {
+        "name": "Azure Copy to Cloud Provider 2",
+        "description": "Cross-cloud data transfer path to downstream Cloud Provider2.",
+        "crossingDataFlows": [
+          "Azure Copy to Cloud Provider 2"
+        ],
+        "risks": [
+          "Insecure transfer or misrouting of sensitive data",
+          "Lack of contract/SLA/controls at destination causing compliance violations"
+        ]
+      }
+    ],
+    "threats": [
+      {
+        "id": "T1",
+        "component": "App Gateway / Public API",
+        "strideCategory": "Spoofing",
+        "threatStatement": "An attacker or compromised SaaS (Cloud Provider1) impersonates a legitimate client or service and exchanges forged tokens/requests to the App Gateway, gaining unauthorized access to backend APIs.",
+        "affectedAssets": [
+          "Entra ID (Azure AD) identities and tokens",
+          "App Gateway (ingress)",
+          "Java Rest API",
+          "PII and financial data"
+        ],
+        "trustBoundary": "Internet to Azure App Gateway",
+        "evidence": [
+          "AuthenticationDetails: Entra ID for users, OAuth 2.0 for third-party integrations",
+          "InternetExposure: Public SaaS and API entrypoint",
+          "ExistingControls: Azure AD Conditional Access Policies"
+        ],
+        "likelihood": "high",
+        "impact": "critical",
+        "risk": "critical",
+        "cloudControlGaps": [
+          "No explicit evidence of enforced token audience/scope validation at API backends",
+          "No evidence of mutual TLS or client certificate authentication for service-to-service calls",
+          "No OpenApiDocument provided to verify schema-level request validation"
+        ],
+        "recommendedMitigations": [
+          "Enforce strict JWT validation in APIs: issuer, audience, signature (validate with Entra ID public keys), scope/roles and token expiry",
+          "Require mTLS or certificate-based auth between App Gateway and AKS for trusted service-to-service calls",
+          "Use App Gateway/Front Door to enforce authentication at edge (validate tokens or perform token exchange) and drop unauthenticated requests",
+          "Enable Conditional Access policies for API clients and require device or client app claims for sensitive operations",
+          "Instrument Azure Sentinel rules to alert on abnormal token use (token replay, rapid token failures, unusual client IDs)"
+        ]
+      },
+      {
+        "id": "T2",
+        "component": "AKS cluster / container workloads",
+        "strideCategory": "Tampering",
+        "threatStatement": "A compromised container image or vulnerable application in AKS is used to tamper with data, modify requests, or move laterally to access Azure Storage or Key Vault.",
+        "affectedAssets": [
+          "AKS cluster (workload runtime)",
+          "CI/CD pipelines, container images, IaC templates",
+          "Azure Storage",
+          "Key Vault and secrets",
+          "PII and financial data"
+        ],
+        "trustBoundary": "Azure App Gateway to AKS; AKS to Azure Data Storage",
+        "evidence": [
+          "Components: Azure Kubernetes Service (AKS)",
+          "ExistingControls: Defender for Cloud (stated) - but no explicit evidence of image scanning or pod runtime protection"
+        ],
+        "likelihood": "medium",
+        "impact": "high",
+        "risk": "high",
+        "cloudControlGaps": [
+          "No evidence of image signing/registry restrictions (ACR content trust) or image scanning enforced in pipeline",
+          "No evidence of pod security admission controls or runtime EDR for containers",
+          "No evidence of private AKS API server endpoint or restricted kubelet access"
+        ],
+        "recommendedMitigations": [
+          "Enforce trusted registries (ACR) with image signing and vulnerability scanning integrated into CI/CD; block unscanned images in admission",
+          "Enable Pod Security Admission / Azure Policy for AKS and use Kubernetes Network Policies to restrict east-west traffic",
+          "Use Azure Defender for Containers runtime protection and ECR/ACR scanning; enable node auto-updates and node OS patching",
+          "Use workload identities (pod-managed identities or workload identity federation) instead of mounting secrets, and minimize RBAC permissions in-cluster",
+          "Restrict AKS API server with private endpoints and control plane RBAC, and log Kubernetes audit events to Sentinel"
+        ]
+      },
+      {
+        "id": "T3",
+        "component": "Azure Storage / Azure Copy / cross-cloud transfer",
+        "strideCategory": "InformationDisclosure",
+        "threatStatement": "Sensitive data (PII, financial) is exposed during storage or while copying to Cloud Provider2 due to misconfigured storage permissions, public access, or insecure transfer.",
+        "affectedAssets": [
+          "Azure Storage (data stores)",
+          "Azure Copy / data transfer to Cloud Provider 2",
+          "PII and financial data",
+          "Third-party SaaS / Cloud Provider2"
+        ],
+        "trustBoundary": "AKS to Azure Data Storage; Azure Copy to Cloud Provider 2",
+        "evidence": [
+          "DataFlows: Azure Copy to Cloud Provider 2",
+          "Assumptions: No public access to Azure Storage accounts (assumption stated but not verified)"
+        ],
+        "likelihood": "medium",
+        "impact": "critical",
+        "risk": "high",
+        "cloudControlGaps": [
+          "No provided evidence of storage account firewall/private endpoint usage or service endpoints",
+          "No evidence of SAS token lifetime/rotation policies, nor use of CMK (customer-managed keys)",
+          "No evidence of encryption key ownership/rotation or logging configuration for blob read access"
+        ],
+        "recommendedMitigations": [
+          "Ensure storage accounts are secured with 'Allow trusted Microsoft services' minimized, storage firewall enabled, and private endpoints used from AKS VNet",
+          "Use short-lived SAS tokens, restrict allowed IP ranges and permissions, and rotate keys; prefer managed identities to access storage",
+          "Encrypt at rest with CMK stored in Key Vault and enforce Key Vault access via firewall and RBAC",
+          "Require TLS for cross-cloud transfers and verify destination endpoints; log and alert on large or unusual data egress in Sentinel"
+        ]
+      },
+      {
+        "id": "T4",
+        "component": "Logging and audit pipeline",
+        "strideCategory": "Repudiation",
+        "threatStatement": "Insufficient or incomplete audit logging and retention prevents reliable detection and investigation of privilege misuse, data exfiltration, or configuration changes across multi-cloud flows.",
+        "affectedAssets": [
+          "Azure Sentinel / Security logs",
+          "Entra ID logs",
+          "AKS audit logs",
+          "Azure Storage access logs"
+        ],
+        "trustBoundary": "Cross-cloud and cross-service monitoring boundary",
+        "evidence": [
+          "ExistingControls: Azure Sentinel, Azure Security Center (stated) - no evidence of diagnostic settings, retention, or immutable logs"
+        ],
+        "likelihood": "medium",
+        "impact": "medium",
+        "risk": "medium",
+        "cloudControlGaps": [
+          "No evidence that all diagnostic settings are forwarded to a central Log Analytics workspace with adequate retention",
+          "No evidence of immutable/append-only storage for critical logs or enforced alerting on sensitive events"
+        ],
+        "recommendedMitigations": [
+          "Enable diagnostic settings for storage, AKS (audit), App Gateway, Key Vault, and Entra ID and forward to Sentinel/Log Analytics with retention aligning to compliance",
+          "Implement immutable/archival storage for critical logs and enable alerting/playbooks for anomalous access patterns",
+          "Enable Privileged Identity Management (PIM) for administrators and log all elevation events; perform periodic access reviews"
+        ]
+      },
+      {
+        "id": "T5",
+        "component": "Managed Identities / RBAC",
+        "strideCategory": "ElevationOfPrivilege",
+        "threatStatement": "Over-privileged managed identities or mis-scoped RBAC roles allow services or compromised workloads to escalate privileges and access Key Vault, storage, or subscription-level resources.",
+        "affectedAssets": [
+          "Managed Identities and service principals",
+          "Key Vault and secrets",
+          "Azure Storage",
+          "AKS cluster"
+        ],
+        "trustBoundary": "AKS to Azure Data Storage; App Gateway to AKS (authorization boundary)",
+        "evidence": [
+          "AuthenticationDetails: Managed Identity for service-to-service, RBAC implemented for all components (stated) - no evidence of least-privilege role reviews"
+        ],
+        "likelihood": "high",
+        "impact": "high",
+        "risk": "high",
+        "cloudControlGaps": [
+          "No evidence of least-privilege enforcement, role review cadence, or use of PIM for sensitive roles",
+          "No evidence that Key Vault access is restricted to specific managed identities"
+        ],
+        "recommendedMitigations": [
+          "Apply least-privilege: separate identities per service, scope permissions to resources using narrowly scoped roles and resource scope",
+          "Use PIM for human/admin elevation and enforce just-in-time access for high privilege roles",
+          "Restrict Key Vault access to required managed identities only and enable logging for Key Vault operations",
+          "Perform automated role/access reviews and use Azure AD entitlement management"
+        ]
+      },
+      {
+        "id": "T6",
+        "component": "App Gateway / public APIs",
+        "strideCategory": "DenialOfService",
+        "threatStatement": "L7/traffic-based attacks or resource exhaustion target the App Gateway or backend APIs, degrading availability of services and blocking legitimate users.",
+        "affectedAssets": [
+          "App Gateway",
+          "AKS cluster",
+          "Public APIs",
+          "PII and financial data availability"
+        ],
+        "trustBoundary": "Internet to Azure App Gateway",
+        "evidence": [
+          "ExistingControls: Azure DDoS Protection, WAF (stated) - no evidence of per-API rate limiting or autoscale settings"
+        ],
+        "likelihood": "medium",
+        "impact": "medium",
+        "risk": "medium",
+        "cloudControlGaps": [
+          "No evidence of application-level rate limiting, circuit breakers, or autoscale configuration for backend services",
+          "No evidence of App Gateway WAF custom rules specifically tuned for APIs"
+        ],
+        "recommendedMitigations": [
+          "Implement per-API rate limiting and throttling (App Gateway, Front Door, or API Management) and design circuit breakers at service level",
+          "Ensure backend autoscale policies and health probes to absorb legitimate load; tune WAF rules for API abuse patterns",
+          "Create Sentinel playbooks to trigger mitigation (e.g., block IPs, scale resources) on detection of volumetric or malicious traffic"
+        ]
+      },
+      {
+        "id": "T7",
+        "component": "CI/CD pipelines, IaC, logs, images",
+        "strideCategory": "InformationDisclosure",
+        "threatStatement": "Secrets (keys, tokens) or sensitive data leak via CI/CD logs, IaC templates, or container images leading to unauthorized access to cloud resources or data exposure.",
+        "affectedAssets": [
+          "CI/CD pipelines, container images, IaC templates",
+          "Key Vault and secrets",
+          "Azure Storage",
+          "AKS cluster"
+        ],
+        "trustBoundary": "Developer/devops environment to cloud resources",
+        "evidence": [
+          "ExistingControls: Key Vault (stated) - no evidence provided about pipeline secret handling, secret scanning, or repo protection"
+        ],
+        "likelihood": "medium",
+        "impact": "high",
+        "risk": "high",
+        "cloudControlGaps": [
+          "No evidence that secrets are prevented from being captured in build logs or that secret scanning is performed on repos and images",
+          "No evidence of CI/CD pipeline restrictions (branch protections, required reviews, signed commits)"
+        ],
+        "recommendedMitigations": [
+          "Integrate Key Vault with CI/CD; use managed identities or federated credentials instead of stored secrets in pipelines",
+          "Enable secret scanning on repositories and pipelines, and prevent secrets from being printed to logs; ensure artifacts/images are scanned for secrets and vulnerabilities",
+          "Enforce branch protections, signed commits, and pipeline approval gates for production deployments"
+        ]
+      },
+      {
+        "id": "T8",
+        "component": "Third-party SaaS and supply chain",
+        "strideCategory": "Tampering",
+        "threatStatement": "A third-party SaaS (Cloud Provider1) or transit dependency is compromised and injects malicious data or instructions into the integration, affecting downstream processing in Azure and Cloud Provider2.",
+        "affectedAssets": [
+          "Third-party SaaS (Cloud Provider1)",
+          "Azure App Gateway",
+          "Azure Copy to Cloud Provider2",
+          "PII and financial data"
+        ],
+        "trustBoundary": "SaaS to Azure App Gateway; Azure Copy to Cloud Provider2",
+        "evidence": [
+          "ArchitectureSummary: On-Premises upstream systems to SaaS Cloud Provider1 to downstream applications hosted in Cloud Provider2",
+          "Assumptions: Third-party services comply with security standards (assumed)"
+        ],
+        "likelihood": "medium",
+        "impact": "high",
+        "risk": "high",
+        "cloudControlGaps": [
+          "No evidence of third-party security attestations, contract requirements, or runtime validation of inbound data",
+          "No evidence of SBOMs or provenance for container images and dependencies"
+        ],
+        "recommendedMitigations": [
+          "Require security attestations (SOC2/ISO) and contractual SLAs for third parties; use allowlists and validate data schemas rigorously at the edge",
+          "Implement payload validation, canonicalization, and signing of messages from third parties; verify signatures before processing",
+          "Maintain SBOMs for images and dependencies; scan and block images with known vulnerable components"
+        ]
+      }
+    ],
+    "topPriorities": [
+      {
+        "rank": 1,
+        "threatId": "T3",
+        "priority": "Critical priority - prevent data exfiltration",
+        "rationale": "PII/financial data is high-value and flows across storage and cross-cloud transfer; assumptions about storage being non-public are unverified. Data exfiltration would have regulatory and business impact.",
+        "firstStep": "Verify storage account access configurations: confirm storage firewall/private endpoints, list any public containers, enable diagnostic logging and set alerts for anonymous/list operations."
+      },
+      {
+        "rank": 2,
+        "threatId": "T5",
+        "priority": "High priority - remove over-privileged identities",
+        "rationale": "Managed identities and RBAC misconfiguration allow privilege escalation enabling broad access to storage/Key Vault and could enable data exfiltration or tampering.",
+        "firstStep": "Inventory all managed identities and service principals with access to Key Vault and storage, and perform an immediate role entitlement review; revoke unnecessary or broad roles."
+      },
+      {
+        "rank": 3,
+        "threatId": "T2",
+        "priority": "High priority - harden runtime and supply chain",
+        "rationale": "AKS workload compromise can enable data access and lateral movement; container supply chain and runtime protections are not evidenced.",
+        "firstStep": "Ensure CI/CD blocks unsigned or unscanned images, enable image scanning in pipeline/ACR, and deploy runtime monitoring (Defender for Containers) on AKS."
+      }
+    ],
+    "controlRecommendations": [
+      {
+        "control": "Enforce storage private endpoints and firewall rules; block public blob access; enable CMK",
+        "mappedThreatIds": [
+          "T3",
+          "T8"
+        ],
+        "implementationNotes": "Enable storage account network rules to allow only the application's VNet and approved IPs; configure private endpoints and DNS; enable customer-managed keys in Key Vault and restrict Key Vault network access.",
+        "verification": "Confirm no public containers via Azure CLI/Azure Portal, verify private endpoint connections, check storage diagnostic logs show only VNet-originated access, and verify encryption uses CMK and Key Vault access is limited to expected identities."
+      },
+      {
+        "control": "Strict token validation and edge authentication with mTLS or API gateway auth",
+        "mappedThreatIds": [
+          "T1",
+          "T5"
+        ],
+        "implementationNotes": "Validate JWTs in backend services (issuer, audience, signature, scopes). Terminate TLS at gateway only after validating client tokens; require mTLS or certificate-based authentication for SaaS integrations or service-to-service traffic.",
+        "verification": "Run automated tests that submit tokens with invalid signatures/audiences and confirm rejection; verify mTLS handshake logs and Sentinel alerts on failed auth attempts."
+      },
+      {
+        "control": "Least-privilege RBAC and PIM for elevated roles",
+        "mappedThreatIds": [
+          "T5",
+          "T4"
+        ],
+        "implementationNotes": "Assign narrowly scoped roles at resource scope, use separate managed identities per workload, enable Privileged Identity Management for human/admin roles and just-in-time elevation.",
+        "verification": "Produce an access matrix showing least-privilege mappings, confirm PIM is enabled for subscription/resource-owner roles, and review recent elevation logs for appropriateness."
+      },
+      {
+        "control": "Image signing, scanning, and runtime protection for AKS",
+        "mappedThreatIds": [
+          "T2",
+          "T8"
+        ],
+        "implementationNotes": "Integrate image scanning into CI/CD; require signed images from ACR; enable Azure Defender for Containers & Kubernetes audit logging; enforce Pod Security Admission and network policies.",
+        "verification": "Pipeline prevents unsigned/unscanned images, Defender alerts on suspicious container activity, Kubernetes audit logs forwarded to Sentinel, and policies show 'enforced' status."
+      },
+      {
+        "control": "Centralized logging, retention, immutable log storage, and alerting",
+        "mappedThreatIds": [
+          "T4",
+          "T3",
+          "T7"
+        ],
+        "implementationNotes": "Forward diagnostics for AKS, App Gateway, Key Vault, Storage, and Entra ID to a dedicated Log Analytics workspace; set retention per compliance, enable soft-delete/immutable storage for logs, and create Sentinel analytics rules for critical events.",
+        "verification": "Demonstrate end-to-end log flow for a test event from source to Sentinel with retention policy in effect; show alert firing on simulated sensitive event."
+      },
+      {
+        "control": "Secrets handling and pipeline hardening",
+        "mappedThreatIds": [
+          "T7",
+          "T2"
+        ],
+        "implementationNotes": "Use Key Vault references or managed identities in pipelines; disable storing secrets in repo/pipeline variables; enable secret scanning and block prints to logs; restrict pipeline agents' network egress.",
+        "verification": "CI/CD run logs show no secret leaks, Key Vault references used in pipeline definitions, secret-scan reports show zero high-risk secrets, and pipeline agent network policies are enforced."
+      },
+      {
+        "control": "API rate limiting, WAF tuning, and DDoS defenses",
+        "mappedThreatIds": [
+          "T6",
+          "T1"
+        ],
+        "implementationNotes": "Use App Gateway/Front Door or API Management to implement per-client rate limits, bot protection, and tuned WAF rules; maintain Azure DDoS protection for public endpoints and configure autoscale for backend pools.",
+        "verification": "Load test demonstrating throttling behavior, WAF rule hits in logs, and autoscale activities responding to simulated traffic spikes."
+      }
+    ]
+  },
+  "createdAt": "2026-05-21T17:23:50.5546875+00:00"
+}

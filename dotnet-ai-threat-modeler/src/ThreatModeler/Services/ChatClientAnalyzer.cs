@@ -32,8 +32,9 @@ public sealed class ChatClientAnalyzer : IAnalyzer
         var promptContext = await _promptContextProvider.GetContextAsync(submission, cancellationToken);
 
         // Strategy pattern: this implementation delegates analysis to a configured chat client.
+        var promptBuilderResult =  _promptBuilder.Build(submission, promptContext);
         var response = await _chatClient.Value.GetResponseAsync(
-            _promptBuilder.Build(submission, promptContext),
+            promptBuilderResult,
             cancellationToken: cancellationToken);
 
         var json = TryReadJson(response.Text);
